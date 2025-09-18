@@ -1,0 +1,776 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# PA1.2 Naive Bayes for Text Classification\n",
+    "\n",
+    "### Introduction\n",
+    "\n",
+    "In this notebook, you will be implementing a Naive Bayes model to classify sentences based off their emotions.\n",
+    "\n",
+    "The Naive Bayes model is a probabilistic model that uses Bayes' Theorem to calculate the probability of a label given some observed features. In this case, we will be using the Naive Bayes model to calculate the probability of a sentence belonging to a certain emotion given the words in the sentence.\n",
+    "\n",
+    "For reference and additional details, please go through [Chapter 4](https://web.stanford.edu/~jurafsky/slp3/4.pdf) of the SLP3 book.\n",
+    "\n",
+    "\n",
+    "### Instructions\n",
+    "\n",
+    "- Follow along with the notebook, filling out the necessary code where instructed.\n",
+    "\n",
+    "- <span style=\"color: red;\">Read the Submission Instructions, Plagiarism Policy, and Late Days Policy in the attached PDF.</span>\n",
+    "\n",
+    "- <span style=\"color: red;\">Make sure to run all cells for credit.</span>\n",
+    "\n",
+    "- <span style=\"color: red;\">Do not remove any pre-written code.</span>\n",
+    "\n",
+    "- <span style=\"color: red;\">You must attempt all parts.</span>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\sehar\\AppData\\Roaming\\Python\\Python312\\site-packages\\tqdm\\auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html\n",
+      "  from .autonotebook import tqdm as notebook_tqdm\n"
+     ]
+    }
+   ],
+   "source": [
+    "# import all required libraries here\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "from datasets import load_dataset_builder\n",
+    "from datasets import load_dataset"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Loading and Preprocessing the Dataset\n",
+    "\n",
+    "We will be working with the [dair-ai/emotion](https://huggingface.co/datasets/dair-ai/emotion) dataset. This contains 6 classes of emotions: `joy`, `sadness`, `anger`, `fear`, `love`, and `surprise`.\n",
+    "\n",
+    "Instead of downloading the dataset manually, we will be using the [`datasets`](https://huggingface.co/docs/datasets) library to download the dataset for us. This is a library in the HuggingFace ecosystem that allows us to easily download and use datasets for NLP tasks. Outside of just downloading the dataset, it also provides a standard interface for accessing the data, which makes it easy to use with other libraries like Pandas and PyTorch. You can take a look at the huge list of datasets available [here](https://huggingface.co/datasets).\n",
+    "\n",
+    "In the following cells,\n",
+    "\n",
+    "1. Load in the dataset (It should already be split into train, validation, and test sets.)\n",
+    "\n",
+    "2. Define a dictionary mapping the emotion labels to integers. You can find these on the dataset page linked above.\n",
+    "\n",
+    "3. Format each split of the dataset into a Pandas DataFrame. The columns should be `text` and `label`, where `text` is the sentence and `label` is the emotion label."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "c:\\Program Files\\Python312\\Lib\\site-packages\\datasets\\load.py:1429: FutureWarning: The repository for dair-ai/emotion contains custom code which must be executed to correctly load the dataset. You can inspect the repository content at https://hf.co/datasets/dair-ai/emotion\n",
+      "You can avoid this message in future by passing the argument `trust_remote_code=True`.\n",
+      "Passing `trust_remote_code=True` will be mandatory to load this dataset from the next major release of `datasets`.\n",
+      "  warnings.warn(\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "{'text': Value(dtype='string', id=None),\n",
+       " 'label': ClassLabel(names=['sadness', 'joy', 'love', 'anger', 'fear', 'surprise'], id=None)}"
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "from datasets import load_dataset_builder\n",
+    "ds_builder = load_dataset_builder(\"dair-ai/emotion\")\n",
+    "\n",
+    "# Inspect dataset description\n",
+    "ds_builder.info.description\n",
+    "\n",
+    "\n",
+    "# Inspect dataset features\n",
+    "ds_builder.info.features\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from datasets import load_dataset\n",
+    "\n",
+    "dataset = load_dataset(\"dair-ai/emotion\", trust_remote_code=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Train DataFrame:\n",
+      "                                                text  label\n",
+      "0                            i didnt feel humiliated      0\n",
+      "1  i can go from feeling so hopeless to so damned...      0\n",
+      "2   im grabbing a minute to post i feel greedy wrong      3\n",
+      "3  i am ever feeling nostalgic about the fireplac...      2\n",
+      "4                               i am feeling grouchy      3\n",
+      "\n",
+      "Validation DataFrame:\n",
+      "                                                text  label\n",
+      "0  im feeling quite sad and sorry for myself but ...      0\n",
+      "1  i feel like i am still looking at a blank canv...      0\n",
+      "2                     i feel like a faithful servant      2\n",
+      "3                  i am just feeling cranky and blue      3\n",
+      "4  i can have for a treat or if i am feeling festive      1\n",
+      "\n",
+      "Test DataFrame:\n",
+      "                                                text  label\n",
+      "0  im feeling rather rotten so im not very ambiti...      0\n",
+      "1          im updating my blog because i feel shitty      0\n",
+      "2  i never make her separate from me because i do...      0\n",
+      "3  i left with my bouquet of red and yellow tulip...      1\n",
+      "4    i was feeling a little vain when i did this one      0\n"
+     ]
+    }
+   ],
+   "source": [
+    "dataset\n",
+    "\n",
+    "# Load train split into a pandas DataFrame\n",
+    "train_df = pd.DataFrame(dataset['train'])\n",
+    "print(\"Train DataFrame:\")\n",
+    "print(train_df.head())\n",
+    "\n",
+    "# Load validation split into a pandas DataFrame\n",
+    "validation_df = pd.DataFrame(dataset['validation'])\n",
+    "print(\"\\nValidation DataFrame:\")\n",
+    "print(validation_df.head())\n",
+    "\n",
+    "# Load test split into a pandas DataFrame\n",
+    "test_df = pd.DataFrame(dataset['test'])\n",
+    "print(\"\\nTest DataFrame:\")\n",
+    "print(test_df.head())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dataset_map = {0:'sadness', 1:'joy', 2:'love', 3:'anger', 4:'fear', 5:'surprise'}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now that we've gotten a feel for the dataset, we might want to do some cleaning or preprocessing before continuing. For example, we might want to remove punctuation and other alphanumeric characters, lowercase all the text, strip away extra whitespace, and remove stopwords.\n",
+    "\n",
+    "In the cell below, write a function that does exactly the following described above. You can use the `re` library to help you with this. You can also use the `nltk` library to help you with removing stopwords.\n",
+    "\n",
+    "Once you are done, you can simply `apply` this function to the `text` column of the dataset to get the preprocessed text."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "[nltk_data] Downloading package stopwords to\n",
+      "[nltk_data]     C:\\Users\\sehar\\AppData\\Roaming\\nltk_data...\n",
+      "[nltk_data]   Package stopwords is already up-to-date!\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "True"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# code here\n",
+    "import nltk\n",
+    "from nltk.corpus import stopwords\n",
+    "import string\n",
+    "\n",
+    "train_df['text'] = train_df['text'].astype(str)\n",
+    "validation_df['text'] = validation_df['text'].astype(str)\n",
+    "test_df['text'] = test_df['text'].astype(str)\n",
+    "\n",
+    "nltk.download('stopwords')\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def preprocess_text(text):\n",
+    "    text = text.lower()\n",
+    "    text = ''.join([char for char in text if char not in string.punctuation])\n",
+    "    text = ''.join([char for char in text if char.isalpha() or char.isspace()])\n",
+    "\n",
+    "    stop_words = set(stopwords.words('english'))\n",
+    "    text = ' '.join([word for word in text.split() if word.lower() not in stop_words])\n",
+    "\n",
+    "    return text\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Index(['text', 'label'], dtype='object')\n",
+      "<class 'pandas.core.frame.DataFrame'>\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(train_df.columns)\n",
+    "print(type(train_df))\n",
+    "\n",
+    "validation_df['processed_text'] = validation_df['text'].apply(preprocess_text)\n",
+    "train_df['processed_text'] = train_df['text'].apply(preprocess_text)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Index(['text', 'label', 'processed_text'], dtype='object')\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(validation_df.columns)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Train DataFrame:\n",
+      "text              i didnt feel humiliated\n",
+      "label                                   0\n",
+      "processed_text      didnt feel humiliated\n",
+      "Name: 0, dtype: object\n",
+      "text              ive been feeling a little burdened lately wasn...\n",
+      "label                                                             0\n",
+      "processed_text        ive feeling little burdened lately wasnt sure\n",
+      "Name: 5, dtype: object\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"Train DataFrame:\")\n",
+    "print(train_df.iloc[0])\n",
+    "\n",
+    "print(train_df.iloc[5])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Vectorizing sentences with Bag of Words\n",
+    "\n",
+    "Now that we have loaded in our data, we will need to vectorize our sentences - this is necessary to be able to numericalize our inputs before feeding them into our model. \n",
+    "\n",
+    "We will be using a Bag of Words approach to vectorize our sentences. This is a simple approach that counts the number of times each word appears in a sentence. \n",
+    "\n",
+    "The element at index $\\text{i}$ of the vector will be the number of times the $\\text{i}^{\\text{th}}$ word in our vocabulary appears in the sentence. So, for example, if our vocabulary is `[\"the\", \"cat\", \"sat\", \"on\", \"mat\"]`, and our sentence is `\"the cat sat on the mat\"`, then our vector will be `[2, 1, 1, 1, 1]`.\n",
+    "\n",
+    "You will now create a `BagOfWords` class to vectorize our sentences. This will involve creating\n",
+    "\n",
+    "1. A vocabulary from our corpus\n",
+    "\n",
+    "2. A mapping from words to indices in our vocabulary\n",
+    "\n",
+    "3. A function to vectorize a sentence in the fashion described above\n",
+    "\n",
+    "It may help you to define something along the lines of a `fit` and a `vectorize` method."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# BagOfWords class\n",
+    "class BagOfWords:\n",
+    "    def __init__(self):\n",
+    "        self.vocabulary = None\n",
+    "\n",
+    "    def fit(self, corpus):\n",
+    "        # Build vocabulary from the corpus\n",
+    "        unique_words = set(word for sentence in corpus for word in sentence.split())\n",
+    "        # Assign each unique word an index in the vocabulary\n",
+    "        self.vocabulary = {word: i for i, word in enumerate(unique_words)}\n",
+    "\n",
+    "    def vectorize(self, sentences):\n",
+    "        # Vectorize each sentence into Bag of Words vectors\n",
+    "        vectors = []\n",
+    "        for sentence in sentences:\n",
+    "             # Count occurrences of each word in the sentence and create a vector\n",
+    "            vector = [sentence.split().count(word) for word in self.vocabulary]\n",
+    "            vectors.append(vector)\n",
+    "\n",
+    "        return vectors"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For a sanity check, you can manually set the vocabulary of your `BagOfWords` object to the vocabulary of the example above, and check that the vectorization of the sentence is correct.\n",
+    "\n",
+    "Once you have implemented the `BagOfWords` class, fit it to the training data, and vectorize the training, validation, and test data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[[1 1 2 0 0 1 0 0 1]\n",
+      " [0 0 1 0 0 0 1 1 0]\n",
+      " [1 0 2 1 1 0 0 0 0]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# code here\n",
+    "# SANITY CHECK\n",
+    "\n",
+    "\n",
+    "data = {'text': [\"the cat sat on the mat\", \"the dog barked\", \"the cat chased the mouse\"],\n",
+    "        'labels': [1, 0, 1]}\n",
+    "df = pd.DataFrame(data)\n",
+    "\n",
+    "corpus = df['text'].astype(str).values\n",
+    "\n",
+    "\n",
+    "# Initialize and fit the Bag of Words model\n",
+    "bow_model = BagOfWords()\n",
+    "bow_model.fit(corpus)\n",
+    "\n",
+    "# Vectorize the sentences in the DataFrame\n",
+    "vec = (bow_model.vectorize(corpus))\n",
+    "vec = np.array(vec)\n",
+    "\n",
+    "\n",
+    "\n",
+    "print((vec))\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "vectorizer = BagOfWords()\n",
+    "corpus1 = train_df['processed_text'].astype(str).values\n",
+    "corpus2 = validation_df['processed_text'].astype(str).values\n",
+    "\n",
+    "vectorizer.fit(corpus1)\n",
+    "\n",
+    "train_vec = vectorizer.vectorize(corpus1)\n",
+    "train_vec = np.array(train_vec)\n",
+    "validation_vec = vectorizer.vectorize(corpus2)\n",
+    "validation_vec = np.array(validation_vec)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Naive Bayes\n",
+    "\n",
+    "### From Scratch\n",
+    "\n",
+    "Now that we have vectorized our sentences, we can implement our Naive Bayes model. Recall that the Naive Bayes model is based off of the Bayes Theorem:\n",
+    "\n",
+    "$$\n",
+    "P(y \\mid x) = \\frac{P(x \\mid y)P(y)}{P(x)}\n",
+    "$$\n",
+    "\n",
+    "What we really want is to find the class $c$ that maximizes $P(c \\mid x)$, so we can use the following equation:\n",
+    "\n",
+    "$$\n",
+    "\\hat{c} = \\underset{c}{\\text{argmax}} \\ P(c \\mid x) = \\underset{c}{\\text{argmax}} \\ P(x \\mid c)P(c)\n",
+    "$$\n",
+    "\n",
+    "We can then use the Naive Bayes assumption to simplify this:\n",
+    "\n",
+    "$$\n",
+    "\\hat{c} = \\underset{c}{\\text{argmax}} \\ P(c \\mid x) = \\underset{c}{\\text{argmax}} \\ P(c) \\prod_{i=1}^{n} P(x_i \\mid c)\n",
+    "$$\n",
+    "\n",
+    "Where $x_i$ is the $i^{\\text{th}}$ word in our sentence.\n",
+    "\n",
+    "All of these probabilities can be estimated from our training data. We can estimate $P(c)$ by counting the number of times each class appears in our training data, and dividing by the total number of training examples. We can estimate $P(x_i \\mid c)$ by counting the number of times the $i^{\\text{th}}$ word in our vocabulary appears in sentences of class $c$, and dividing by the total number of words in sentences of class $c$.\n",
+    "\n",
+    "It would help to apply logarithms to the above equation so that we translate the product into a sum, and avoid underflow errors. This will give us the following equation:\n",
+    "\n",
+    "$$\n",
+    "\\hat{c} = \\underset{c}{\\text{argmax}} \\ \\log P(c) + \\sum_{i=1}^{n} \\log P(x_i \\mid c)\n",
+    "$$\n",
+    "\n",
+    "You will now implement this algorithm. It would help to go through [this chapter from SLP3](https://web.stanford.edu/~jurafsky/slp3/4.pdf) to get a better understanding of the model - **it is recommended base your implementation off the pseudocode that has been provided on Page 6**. You can either make a `NaiveBayes` class, or just implement the algorithm across two functions.\n",
+    "\n",
+    "<span style=\"color: red;\"> For this part, the only external library you will need is `numpy`. You are not allowed to use anything else.</span>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Train SET\n",
+    "train_x = train_vec\n",
+    "train_y = train_df['label']\n",
+    "#VAL SET\n",
+    "val_x = validation_vec\n",
+    "val_y = validation_df['label']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<class 'numpy.ndarray'>\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "array([[0, 0, 0, ..., 0, 0, 0],\n",
+       "       [0, 0, 0, ..., 0, 0, 0],\n",
+       "       [0, 0, 0, ..., 0, 0, 0],\n",
+       "       ...,\n",
+       "       [0, 0, 0, ..., 0, 0, 0],\n",
+       "       [0, 0, 0, ..., 0, 0, 0],\n",
+       "       [0, 0, 0, ..., 0, 0, 0]])"
+      ]
+     },
+     "execution_count": 15,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "print(type(train_x))\n",
+    "train_x"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "\n",
+    "class NaiveBayes:\n",
+    "    def __init__(self):\n",
+    "        self.prior = None\n",
+    "        self.conditional_log_prob = None\n",
+    "        self.classes = None\n",
+    "\n",
+    "    # Fit the classifier on training data\n",
+    "    def fit(self, input_data, output_labels):  # likelihood P(X | y)\n",
+    "\n",
+    "        # Get the number of samples and features in input data\n",
+    "        num_samples, num_features = input_data.shape\n",
+    "\n",
+    "        self.classes = np.unique(output_labels)  # Unique classes in output data or unique outcomes in y\n",
+    "        num_classes = len(self.classes)  # Number of classes\n",
+    "\n",
+    "        # Calculate prior probabilities of each class\n",
+    "        self.prior = np.zeros(num_classes)  # P(X)\n",
+    "        \n",
+    "        # First initialize an array of size (num_classes x num_features)\n",
+    "        self.conditional_log_prob = np.zeros((num_classes, num_features))\n",
+    "\n",
+    "        for i, class_label in enumerate(self.classes):  # Iterate over each unique outcome in y\n",
+    "\n",
+    "            # Count the number of samples/instances with label 'class_label'\n",
+    "            num_samples_in_class = np.sum(output_labels == class_label)\n",
+    "\n",
+    "            # Calculate the prior probability of the current class\n",
+    "            prior_prob_of_class = num_samples_in_class / num_samples\n",
+    "\n",
+    "            # Store the prior probability of the current class in the array\n",
+    "            self.prior[i] = np.log(prior_prob_of_class)\n",
+    "            # Extract the features of all samples with class 'class_label'.\n",
+    "            features_in_class = input_data[output_labels == class_label]\n",
+    "\n",
+    "            # Calculate the frequency of each feature in class 'class_label'.\n",
+    "            # We add 1 to each frequency to avoid zero probabilities.\n",
+    "            feature_frequencies = features_in_class.sum(axis=0) + 1\n",
+    "\n",
+    "            # Calculating the denominator of the conditional probability equation:\n",
+    "            # the sum of the feature frequencies for class 'class_label' plus the number of features.\n",
+    "            # The total count of all feature occurrences in class 'class_label' + number of features\n",
+    "            denominator = np.sum(features_in_class) + num_features\n",
+    "\n",
+    "            # Calculate the conditional probability of each feature for class 'class_label' by dividing\n",
+    "            # the feature frequencies by the denominator and taking the logarithm.\n",
+    "            conditional_log_probabilities = np.log(feature_frequencies / denominator)\n",
+    "\n",
+    "            # Set the conditional probability of each feature for class 'class_label' in the\n",
+    "            # conditional_log_prob array.\n",
+    "            self.conditional_log_prob[i, :] = conditional_log_probabilities\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "    # Predict class labels of new input data\n",
+    "    def predict(self, new_input_data):\n",
+    "        predicted_labels = []\n",
+    "        for x in new_input_data:\n",
+    "            posterior_log_probs = []  # P(y | X)\n",
+    "            # Naive assumption (independence):\n",
+    "            # P(x1, x2 | Y) = P(x1 | Y) * P(x2 | Y)\n",
+    "\n",
+    "            for i, class_label in enumerate(self.classes):\n",
+    "\n",
+    "                prior_log_prob = self.prior[i]\n",
+    "                # Calculate conditional probability of features given class 'class_label'\n",
+    "                conditional_log_prob = np.sum(self.conditional_log_prob[i, :] * x)\n",
+    "                # Calculate posterior probability of class 'class_label'\n",
+    "                posterior_log_probs.append(prior_log_prob + conditional_log_prob)\n",
+    "\n",
+    "            # Predict class with the highest posterior probability\n",
+    "            predicted_labels.append(self.classes[np.argmax(posterior_log_probs)])\n",
+    "\n",
+    "        return predicted_labels\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model = NaiveBayes()\n",
+    "model.fit(train_x,train_y)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now use your implementation to train a Naive Bayes model on the training data, and generate predictions for the Validation Set.\n",
+    "\n",
+    "Report the Accuracy, Precision, Recall, and F1 score of your model on the validation data. Also display the Confusion Matrix. You are allowed to use `sklearn.metrics` for this."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Accuracy: 0.7875\n",
+      "Precision: 0.8103\n",
+      "Recall: 0.7875\n",
+      "F1 Score: 0.7642\n",
+      "\n",
+      "Confusion Matrix:\n",
+      "[[519  20   1   5   5   0]\n",
+      " [ 31 668   3   2   0   0]\n",
+      " [ 38  77  60   2   1   0]\n",
+      " [ 52  30   0 189   4   0]\n",
+      " [ 49  24   0   8 129   2]\n",
+      " [ 31  30   0   1   9  10]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix\n",
+    "\n",
+    "\n",
+    "# Predict on the validation set\n",
+    "y_pred_val = model.predict(val_x)\n",
+    "\n",
+    "# Calculate metrics\n",
+    "accuracy = accuracy_score(val_y, y_pred_val)\n",
+    "precision = precision_score(val_y, y_pred_val, average='weighted')\n",
+    "recall = recall_score(val_y, y_pred_val, average='weighted')\n",
+    "f1 = f1_score(val_y, y_pred_val, average='weighted')\n",
+    "conf_matrix = confusion_matrix(val_y, y_pred_val)\n",
+    "\n",
+    "# Display the metrics and confusion matrix\n",
+    "print(f\"Accuracy: {accuracy:.4f}\")\n",
+    "print(f\"Precision: {precision:.4f}\")\n",
+    "print(f\"Recall: {recall:.4f}\")\n",
+    "print(f\"F1 Score: {f1:.4f}\")\n",
+    "\n",
+    "print(\"\\nConfusion Matrix:\")\n",
+    "print(conf_matrix)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Using `sklearn`\n",
+    "\n",
+    "Now that you have implemented your own Naive Bayes model, you will use the `sklearn` library to train a Naive Bayes model on the same data. Alongside this, you will use their implementation of the Bag of Words model, the `CountVectorizer` class, to vectorize your sentences.\n",
+    "\n",
+    "You can use the `MultinomialNB` class to train a Naive Bayes model. Go through the relevant documentation to figure out how to use it, and how it differs from the model you implemented.\n",
+    "\n",
+    "When you finish training your model, report the same metrics as above on the Validation Set."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Metrics using sklearn:\n",
+      "Accuracy: 0.7975\n",
+      "Precision: 0.8170\n",
+      "Recall: 0.7975\n",
+      "F1 Score: 0.7785\n",
+      "\n",
+      "Confusion Matrix:\n",
+      "[[515  24   0   4   6   1]\n",
+      " [ 29 664   5   4   2   0]\n",
+      " [ 32  73  69   3   1   0]\n",
+      " [ 51  27   0 195   2   0]\n",
+      " [ 44  22   0   6 139   1]\n",
+      " [ 27  29   0   1  11  13]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.feature_extraction.text import CountVectorizer\n",
+    "from sklearn.naive_bayes import MultinomialNB\n",
+    "from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix\n",
+    "\n",
+    "\n",
+    "# Initialize and fit the CountVectorizer\n",
+    "vectorizer = CountVectorizer(stop_words='english')\n",
+    "X_train_sklearn = vectorizer.fit_transform(train_df['processed_text'])\n",
+    "X_validation_sklearn = vectorizer.transform(validation_df['processed_text'])\n",
+    "\n",
+    "# Initialize and fit the Multinomial Naive Bayes model\n",
+    "nb_model_sklearn = MultinomialNB()\n",
+    "nb_model_sklearn.fit(X_train_sklearn, train_df['label'])\n",
+    "\n",
+    "# Predict on the validation set\n",
+    "y_pred_validation_sklearn = nb_model_sklearn.predict(X_validation_sklearn)\n",
+    "\n",
+    "# Calculate metrics\n",
+    "accuracy_sklearn = accuracy_score(validation_df['label'], y_pred_validation_sklearn)\n",
+    "precision_sklearn = precision_score(validation_df['label'], y_pred_validation_sklearn, average='weighted')\n",
+    "recall_sklearn = recall_score(validation_df['label'], y_pred_validation_sklearn, average='weighted')\n",
+    "f1_sklearn = f1_score(validation_df['label'], y_pred_validation_sklearn, average='weighted')\n",
+    "conf_matrix_sklearn = confusion_matrix(validation_df['label'], y_pred_validation_sklearn)\n",
+    "\n",
+    "# Display the metrics and confusion matrix\n",
+    "print(\"Metrics using sklearn:\")\n",
+    "print(f\"Accuracy: {accuracy_sklearn:.4f}\")\n",
+    "print(f\"Precision: {precision_sklearn:.4f}\")\n",
+    "print(f\"Recall: {recall_sklearn:.4f}\")\n",
+    "print(f\"F1 Score: {f1_sklearn:.4f}\")\n",
+    "\n",
+    "print(\"\\nConfusion Matrix:\")\n",
+    "print(conf_matrix_sklearn)\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.12.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

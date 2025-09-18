@@ -1,0 +1,42 @@
+[
+    {
+        "regex": "I am (.*)",
+        "responses": [
+            "How long have you been %1?",
+            "What makes you %1?",
+            "Can you tell me more about being %1?"
+        ]
+    },
+    {
+        "regex": "you are (.*)",
+        "responses": [
+            "Why do you think I am %1?",
+            "How does it feel to be %1?",
+            "Can you elaborate on why you think I am %1?"
+        ]
+    },
+    {
+        "regex": "he is (.*)",
+        "responses": [
+            "What makes you say he is %1?",
+            "How do you feel about him being %1?",
+            "Can you provide more information about him being %1?"
+        ]
+    },
+    {
+        "regex": "she is (.*)",
+        "responses": [
+            "Why do you believe she is %1?",
+            "How do you feel about her being %1?",
+            "Can you tell me more about her being %1?"
+        ]
+    },
+    {
+        "regex": "I like (.*)",
+        "responses": [
+            "What do you like about %1?",
+            "How does %1 make you feel?",
+            "Can you explain why you like %1?"
+        ]
+    }
+]

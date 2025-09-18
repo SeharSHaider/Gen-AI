@@ -1,0 +1,189 @@
+
+[
+    {
+        "regex": "I am (.*)",
+        "responses": [
+            "How long have you been %1?",
+            "What makes you %1?",
+            "Can you tell me more about being %1?"
+        ]
+    },
+    {
+        "regex": "you are (.*)",
+        "responses": [
+            "Why do you think I am %1?",
+            "How does it feel to be %1?",
+            "Can you elaborate on why you think I am %1?"
+        ]
+    },
+    {
+        "regex": "he is (.*)",
+        "responses": [
+            "What makes you say he is %1?",
+            "How do you feel about him being %1?",
+            "Can you provide more information about him being %1?"
+        ]
+    },
+    {
+        "regex": "she is (.*)",
+        "responses": [
+            "Why do you believe she is %1?",
+            "How do you feel about her being %1?",
+            "Can you tell me more about her being %1?"
+        ]
+    },
+    {
+        "regex": "(He|She|They|I) (.*) (the|a|an) (.*) (.*)",
+        "responses": [
+            "Why do you think %1 %2 %3 %4 %5?",
+            "How does the %4 %5 affect %1?",
+            "Can you tell me more about why %1 %2 %3 %4 %5?"
+        ]
+    },
+    {
+        "regex": "I feel (.*)",
+        "responses": [
+            "Why do you feel %1?",
+            "What caused you to feel %1?",
+            "How long have you been feeling %1?"
+        ]
+    },
+    {
+        "regex": "I want (.*)",
+        "responses": [
+            "Why do you want %1?",
+            "How do you think %1 will benefit you?",
+            "Have you considered why you want %1?"
+        ]
+    },
+    {
+        "regex": "I think (.*)",
+        "responses": [
+            "What leads you to think %1?",
+            "How long have you been thinking %1?",
+            "Have you considered other perspectives regarding %1?"
+        ]
+    },
+    {
+        "regex": "(.*) is (.*),",
+        "responses": [
+            "Why do you say %1 is %2?",
+            "How does %2 affect %1?",
+            "Can you provide more details about %1 being %2?"
+        ]
+    },
+    {
+        "regex": "(.*) has (.*),",
+        "responses": [
+            "Why do you think %1 has %2?",
+            "How does %2 impact %1?",
+            "Can you elaborate on %1 having %2?"
+        ]
+    },
+    {
+        "regex": "I like (.*)",
+        "responses": [
+            "What do you like about %1?",
+            "How does %1 make you feel?",
+            "Can you explain why you like %1?"
+        ]
+    },
+    {
+        "regex": "I (.*) to (.*)",
+        "responses": [
+            "What motivates you to %2?",
+            "How do you feel when you %2?",
+            "Have you considered the implications of %2?"
+        ]
+    },
+    {
+        "regex": "I (.*) (.*),",
+        "responses": [
+            "Why do you %1 %2?",
+            "How does %2 affect you?",
+            "Can you tell me more about %1 %2?"
+        ]
+    },
+    {
+        "regex": "You (.*) (.*),",
+        "responses": [
+            "Why do you think I %1 %2?",
+            "How does %2 make you feel?",
+            "Can you elaborate on why you think I %1 %2?"
+        ]
+    },
+    {
+        "regex": "(.*) (?:feel|think|believe) (.*) about (.*)",
+        "responses": [
+            "Why do you think %1 %2 about %3?",
+            "How does %3 affect %1's %2?",
+            "Can you provide more details about %1's %2 about %3?"
+        ]
+    },
+    {
+        "regex": "(.*) (?:feel|think|believe) (.*) (?:is|are) (.*)",
+        "responses": [
+            "Why do you think %1 %2 %3?",
+            "How does %3 affect %1's %2?",
+            "Can you provide more details about %1's %2 %3?"
+        ]
+    },
+    {
+        "regex": "How (.*) (?:feel|think|believe) (.*)",
+        "responses": [
+            "Why are you interested in how %1 %2?",
+            "How does %2 affect %1?",
+            "Can you provide more details about how %1 %2?"
+        ]
+    },
+    {
+        "regex": "(.*) is feeling (.*)",
+        "responses": [
+            "Why do you think %1 is feeling %2?",
+            "How does %2 affect %1?",
+            "Can you tell me more about why %1 is feeling %2?"
+        ]
+    },
+
+
+    {
+            "regex": "you are (.*)",
+            "responses": [
+                "Why do you think I am %1?",
+                "How does it feel to be %1?",
+                "Can you elaborate on why you think I am %1?"
+            ]
+        },
+        {
+            "regex": "Do you (like|not like|enjoy|dislike|prefer|hate) (.*)",
+            "responses": [
+                "Why are you interested in whether I %1 %2?",
+                "How does %2 make you feel?",
+                "Can you elaborate on why you're asking if I %1 %2?"
+            ]
+        },
+        {
+            "regex": "do you (know|like|believe|think|dislike|hate) (he|she|they) (.*)",
+            "responses": [
+                "Why are you interested in whether I %1 %2 %3?",
+                "How does %3 affect %2?",
+                "Can you elaborate on why you're asking if I %1 %2 %3?"
+            ]
+        },
+        {
+            "regex": "(I can't|I wasn't|I don't|I didn't|I haven't|I won't|I wouldn't|I couldn't) (.*)",
+            "responses": [
+                "Why do you feel you can't %2?",
+                "What prevented you from %2?",
+                "Can you tell me more about why you didn't %2?"
+            ]
+        },
+        {
+        "regex": ".*",
+        "responses": [
+            "I'm not sure I understand. Can you provide more information?",
+            "That's interesting. Tell me more about it",
+            "I'm not familiar with that. Could you explain further?"
+        ]
+    }
+]           

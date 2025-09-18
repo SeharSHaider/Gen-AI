@@ -1,0 +1,12 @@
+transformers
+trl
+peft
+bitsandbytes
+accelerate
+nltk
+pandas
+numpy
+torch
+gradio
+scipy
+re
